@@ -64,20 +64,19 @@ function __find(collectionName, JsonObj, callback) {
     callback("find函数必须传入三个参数哦", null)
     return
   }
-  __connectDB(function (err, db, client) {
+  __connectDB(async function (err, db, client) {
     var cursor = db.collection(collectionName).find(JsonObj);
     if (!err) {
-      cursor.each(function (err, doc) {
-        assert.equal(err, null) // 使用node的assert模块来判断是否出错了
+      await cursor.forEach(function (doc) {
         // 如果出错了，那么下面的也将不会执行了
+        // console.log('doc', doc)
         if (doc != null) {
           result.push(doc)
-        } else {
-          callback(null, result)
-          client.close();
         }
       })
+      callback(result)
     }
+    client.close();
   })
 }
 

@@ -210,15 +210,17 @@ app.get('/api/getDataFromDouBan', (req, res) => {
 app.get('/api/doubanList', (req, res) => {
   let query = req.query
   let param = []
-  query.label.map((item) => {
+  query.label && query.label.map((item) => {
     param.push({label: item})
   })
-  console.log('param', param)
-  global.db.__find('douban', param, function (data) {
-    console.log('data', data)
+  let queryJson = {
+    $where: "this.list.length > 0"
+  }
+  if (param.length) queryJson['$or'] = param
+  global.db.__find('douban', queryJson, function (data) {
     res.send({
       msg: '获取成功',
-      data: data
+      list: data
     })
   })
 })
