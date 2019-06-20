@@ -1,29 +1,11 @@
 # zufangzi
 
-## Project setup
-```
-yarn install
-```
+> 豆瓣租房子小组爬虫
 
-### Compiles and hot-reloads for development
-```
-yarn run serve
-```
+### 本地启动
+    
+    > 启动 mongod
 
-### Compiles and minifies for production
-```
-yarn run build
-```
+    > yarn dev 启动本地前端服务
 
-### Run your tests
-```
-yarn run test
-```
-
-### Lints and fixes files
-```
-yarn run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+    > nodemon server.js 启动node服务
