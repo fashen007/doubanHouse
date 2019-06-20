@@ -12,3 +12,17 @@ export const spiderData = async (arg = {}) => {
   return respones.data
 }
  
+export const updateIps = async (arg = {}) => {
+  let respones = await axios.get('/api/updateIps/', {
+    params: arg
+  })
+  return respones.data
+}
+ 
+export const getIps = async (arg = {}) => {
+  let respones = await axios.get('/api/getIps/', {
+    params: arg
+  })
+  return respones.data
+}
+ 

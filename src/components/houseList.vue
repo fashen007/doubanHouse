@@ -1,6 +1,18 @@
 <template>
-  <div>
-    <Button type="primary" @click="spiderData" :loading="loading">爬取数据</Button>
+  <div style="padding: 10px 20px;">
+    <Row style='margin-top: 20px'>
+      <Col span="6">
+        <Button type="primary" @click="updateIpsHandler" :loading="loading">更新Ip池</Button> &nbsp;
+        <Button type="primary" @click="getIpsHandler" :loading="loading">获取代理ip</Button>
+      </Col>
+      <Col span="6">
+        <Select v-model="ip" style="width:200px">
+            <Option v-for="item in ipList" :value="`http://${item.ip}:${item.port}`" :key="item.ip">http://{{item.ip}}:{{item.port}}</Option>
+        </Select>
+         &nbsp;
+        <Button type="primary" @click="spiderDataHandler" :loading="loading" :disabled='!this.ip'>爬取数据</Button>
+      </Col>
+    </Row>
     <Row style='margin-top: 20px'>
       <Col span="2"> 地区：</Col>
       <Col span="20">
@@ -12,28 +24,37 @@
         </Checkbox-group>
       </Col>
     </Row>
-    <Table :context="self" :columns="columns" :data="houseData"> </Table>
+    <Table  :context="self" :columns="columns" :data="houseData"> </Table>
+    <Page style='float: right; margin-top: 20px' :current="page" :total="total" @on-change='pageChage'></Page>
   </div>
 </template>
 
 <script>
-import { getHousData, spiderData } from "@/api/fetch";
+import { getHousData, spiderData, updateIps, getIps } from "@/api/fetch";
 export default {
   name: "HelloWorld",
   props: {
     msg: String
   },
+  created () {
+    this.getIpsHandler()
+    this.getList()
+  },
   data() {
     return {
       nam: "",
-      araGroup: [],
+      araGroup: ['gzzf'],
       loading: false,
       self: this,
+      page: 1,
+      ip: '',
+      ipList: [],
+      total: 0,
       columns: [
         {
           title: "标题",
           key: "title",
-          minWidth: 200
+          minWidth: 300
         },
         {
           title: "链接",
@@ -144,20 +165,38 @@ export default {
       // console.log('val', val)
       // getHousData({area: val})
     },
-    async spiderData() {
+    async spiderDataHandler() {
       this.loading = true;
-      let data = await spiderData();
+      let data = await spiderData({ip: this.ip});
       this.loading = false;
+    },
+    updateIpsHandler () {
+      updateIps()
+    },
+    async getIpsHandler () {
+      let {list} = await getIps()
+      this.ipList = []
+      list.map((ls) => {
+        if (!this.ipList.some((o) => o.ip === ls.ip && o.port === ls.port))this.ipList.push(ls)
+      })
+    },
+    async getList () {
+      let { list, total} = await getHousData({ label: this.araGroup, page: this.page});
+      this.total = total || 0
+      this.houseData = list;
+      // list.map(item => {
+      //   this.houseData.push(...item.list);
+      // });
+    },
+    pageChage (val) {
+      console.log('val', val)
+      this.page = val
+      this.getList()
     }
   },
   watch: {
-    async araGroup(val) {
-      let { list } = await getHousData({ label: val });
-      this.houseData = [];
-      list.map(item => {
-        this.houseData.push(...item.list);
-      });
-      console.log("this.houseData", this.houseData);
+    araGroup(val) {
+      this.getList()
     }
   }
 };

@@ -61,7 +61,7 @@ groups.map((gp) => {
 async function getIps(callback) {
   let ips = ipProxy.ips
   ips((err,response) => {
-    response.length ? callback(response) : ipProxy.run() 
+    callback(response)
   })
   // return await this.pool.getProxy();
   // return new Promise((resolve, reject) => {
@@ -82,10 +82,10 @@ async function getIps(callback) {
   //   })
   // })
 }
-function getData(proxyIp, res) {
+function getData(ip, res) {
   //  遍历爬取页面
   async.mapLimit(groups, 1, function (item, callback) {
-    getPageInfo(proxyIp, item, callback);
+    getPageInfo(ip, item, callback);
   }, function (err) {
     if (err) {
       console.log(err)
@@ -95,7 +95,7 @@ function getData(proxyIp, res) {
 }
 ep.after('preparePage', allLength, function (data, res) {
   // 这里我们传入不想要出现的关键词，用'|'隔开 。比如排除一些位置，排除中介常用短语
-  let filterWords = /求组|合租|求租/
+  let filterWords = /求组|合租|求租|主卧/
   // 这里我们传入需要筛选的关键词，如没有，可设置为空格
   // let keyWords = /西二旗/
 
@@ -109,6 +109,7 @@ ep.after('preparePage', allLength, function (data, res) {
   // 数组去重，Set去重了解一下，可以查阅Set这种数据结构
   // intermediary = [...new Set(intermediary)]
   // 再次遍历抓取到的数据
+  let inserTodbList = []
   data.forEach(item => {
     //  这里if的顺序可是有讲究的，合理的排序可以提升程序的效率
     item.list = item.list.filter(() => {
@@ -123,7 +124,7 @@ ep.after('preparePage', allLength, function (data, res) {
       }
       return true
     })
-    console.log('item.list', item.list)
+    inserTodbList.push(...item.list)
     // if (intermediary.includes(item.author)) {
     //   console.log('发帖数过多，丢弃')
     //   return
@@ -134,28 +135,29 @@ ep.after('preparePage', allLength, function (data, res) {
     //   result.push(item)
     // }
   })
-  console.log('data', data)
-  global.db.__insertMany('douban', data, function () {
+  global.db.__insertMany('douban', inserTodbList, function () {
     ep.emit('spiderEnd', {})
   })
 });
-const getPageInfo = (proxyIp, pageItem, callback) => {
+const getPageInfo = (ip, pageItem, callback) => {
   //  设置访问间隔
   // let proxDomain = 'http://' + proxyIp[0]
-  let proxDomain = 'http://' + proxyIp[2].ip + ':' + proxyIp[2].port
-  console.log('proxDomain', proxDomain)
+  // let proxDomain = 'http://' + proxyIp[2].ip + ':' + proxyIp[2].port
+  console.log('ip', ip)
   let delay = parseInt((Math.random() * 30000000) % 1000, 10)
   let resultBack = {label: pageItem.key, list: []}
   pageItem.pageUrls.forEach(pageUrl => {
-    superagent.get(pageUrl.url).proxy(proxDomain)
+    superagent.get(pageUrl.url).proxy(ip)
       // 模拟浏览器
       .set('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36')
       //  如果你不乖乖少量爬数据的话，很可能被豆瓣kill掉，这时候需要模拟登录状态才能访问
       .set('Cookie', '')
       .end((err, pres) => {
         if (err || !pres) {
-          proxyIp.shift()
-          getPageInfo(proxyIp, pageItem, callback)
+          // proxyIp.shift()
+          // getPageInfo(proxyIp, pageItem, callback)
+          ep.emit('preparePage', [])
+          return
         }
         console.log('pres.text', pres.text)
         let $ = cheerio.load(pres.text) // 将页面数据用cheerio处理，生成一个类jQuery对象
@@ -177,6 +179,7 @@ const getPageInfo = (proxyIp, pageItem, callback) => {
             author,
             markSum,
             lastModify,
+            label: pageItem.key
           }
           resultBack.list.push(data)
         }
@@ -198,29 +201,43 @@ const getPageInfo = (proxyIp, pageItem, callback) => {
 // })
 
 app.get('/api/getDataFromDouBan', (req, res) => {
-  getIps(function (ipList) {
-    getData(ipList, res)
-  })
+  let {ip} = req.query
+  getData(ip, res)
   ep.after('spiderEnd', 1, function() {
     res.send({
       data: '爬取结束'
     })
   })
 })
+// 获取ip
+app.get('/api/getIps', (req, res) => {
+  getIps(function (ipList) {
+    res.send({
+      msg: '获取成功',
+      list: ipList
+    })
+  })
+})
+// 更新ip池
+app.get('/api/updateIps', (req, res) => {
+  ipProxy.run(() => {
+    console.log('更新完毕')
+  })
+})
 app.get('/api/doubanList', (req, res) => {
-  let query = req.query
+  let {label, page = 1, pageSize = 10} = req.query
   let param = []
-  query.label && query.label.map((item) => {
+  label && label.map((item) => {
     param.push({label: item})
   })
   let queryJson = {
-    $where: "this.list.length > 0"
+    // $where: "label"
   }
   if (param.length) queryJson['$or'] = param
-  global.db.__find('douban', queryJson, function (data) {
+  global.db.__find('douban', {queryJson, page, pageSize}, function (data) {
     res.send({
       msg: '获取成功',
-      list: data
+      ...data
     })
   })
 })

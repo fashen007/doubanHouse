@@ -44,7 +44,6 @@ function __insertMany(collectionName, Datajson, callback) {
   __connectDB(function (err, db, client) {
     var collection = db.collection(collectionName);
     collection.insertMany(Datajson, function (err, result) {
-      console.log('result', result)
       callback(err, result); // 通过回调函数上传数据
       client.close();
     })
@@ -58,14 +57,15 @@ function __insertMany(collectionName, Datajson, callback) {
  * @param {*} callback 回调函数
  */
 
-function __find(collectionName, JsonObj, callback) {
+function __find(collectionName, {queryJson, page, pageSize}, callback) {
   var result = [];
   if (arguments.length != 3) {
     callback("find函数必须传入三个参数哦", null)
     return
   }
   __connectDB(async function (err, db, client) {
-    var cursor = db.collection(collectionName).find(JsonObj);
+    var cursor = db.collection(collectionName).find(queryJson).skip((page - 1) * pageSize).limit(10);
+    let total = await cursor.count()
     if (!err) {
       await cursor.forEach(function (doc) {
         // 如果出错了，那么下面的也将不会执行了
@@ -74,7 +74,7 @@ function __find(collectionName, JsonObj, callback) {
           result.push(doc)
         }
       })
-      callback(result)
+      callback({list: result, total})
     }
     client.close();
   })
