@@ -22,6 +22,7 @@
     "iview": "^3.4.2",
     "mongodb": "^3.2.7",
     "node-fetch": "^2.6.0",
+    "pm2": "^3.5.1",
     "superagent": "^5.1.0",
     "superagent-proxy": "^2.0.0",
     "vue": "^2.6.10"
