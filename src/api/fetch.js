@@ -8,7 +8,7 @@ export const getHousData = async (arg = {}) => {
 }
 export const spiderData = async (arg = {}) => {
   // 向爬取数据
-  let respones = await axios.get('/api/getDataFromDouBan/', {
+  let respones = await axios.get('/api/getDataFromDouBan', {
     params: arg
   })
   return respones.data
@@ -27,6 +27,7 @@ export const getIps = async (arg = {}) => {
   let respones = await axios.get('/api/getIps/', {
     params: arg
   })
+  console.log('respones', respones)
   return respones.data
 }
  

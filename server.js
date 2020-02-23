@@ -15,7 +15,8 @@ let server = app.listen(2333, "127.0.0.1", function () {
 // 插件
 const superagent = require('superagent');
 const eventproxy = require('eventproxy');
-const ipProxy = require('ip-proxy-pool');
+var request = require('request');
+// const ipProxy = require('ip-proxy-pool');
 const cheerio = require('cheerio');
 const async = require('async');
 require('superagent-proxy')(superagent);
@@ -40,6 +41,13 @@ groups.map((gp) => {
     });
   }
 })
+const iprequstFuc = url => new Promise((resolve, reject) => request.get(url, (err, response, body) => {
+  if (err) {
+  reject(err);
+  } else {
+  resolve(JSON.parse(body));
+  }
+}))
 
 // 接口中部分函数定义
 const getPageInfo = (ip, pageItem, callback) => {
@@ -48,12 +56,14 @@ const getPageInfo = (ip, pageItem, callback) => {
   let delay = parseInt((Math.random() * 30000000) % 1000, 10)
   let resultBack = {label: pageItem.key, list: []}
   pageItem.pageUrls.forEach(pageUrl => {
+    console.log('pageUrl.url', pageUrl.url)
     superagent.get(pageUrl.url).proxy(ip)
       // 模拟浏览器
       .set('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36')
       //  如果你不乖乖少量爬数据的话，很可能被豆瓣kill掉，这时候需要模拟登录状态才能访问
-      .set('Cookie', '')
+      .set('Cookie', '{ttts:kz}')
       .end((err, pres) => {
+        console.log('err', err, pres)
         if (err || !pres) {
           ep.emit('preparePage', [])
           return
@@ -91,8 +101,10 @@ const getPageInfo = (ip, pageItem, callback) => {
       })
   })
 }
+
 function getData(ip, res) {
   //  遍历爬取页面
+  console.log('开始爬取咯')
   async.mapLimit(groups, 1, function (item, callback) {
     getPageInfo(ip, item, callback);
   }, function (err) {
@@ -102,13 +114,16 @@ function getData(ip, res) {
     console.log('抓取完毕')
   });
 }
+console.log('allLength', allLength)
 ep.after('preparePage', allLength, function (data, res) {
   // 这里我们传入不想要出现的关键词，用'|'隔开 。比如排除一些位置，排除中介常用短语
   let filterWords = /求组|合租|求租|主卧/
   // 再次遍历抓取到的数据
   let inserTodbList = []
+  console.log('data', data)
   data.forEach(item => {
     //  这里if的顺序可是有讲究的，合理的排序可以提升程序的效率
+    if (!item.list) return false
     item.list = item.list.filter(() => {
       if (item.markSum > 100) {
         console.log('评论过多，丢弃')
@@ -116,13 +131,13 @@ ep.after('preparePage', allLength, function (data, res) {
       }
       if (filterWords.test(item.title)) {
         console.log('标题带有不希望出现的词语')
-        console.log('item', item)
         return false
       }
       return true
     })
     inserTodbList.push(...item.list)
   })
+  console.log('inserTodbList', inserTodbList)
   global.db.__insertMany('douban', inserTodbList, function () {
     ep.emit('spiderEnd', {})
   })
@@ -132,18 +147,25 @@ ep.after('preparePage', allLength, function (data, res) {
 // 接口
 
 // 获取ip
-app.get('/api/getIps', (req, res) => {
-  async function getIps(callback) {
-    let ips = ipProxy.ips
-    ips((err,response) => {
-      callback(response)
-    })
-  }
-  getIps(function (ipList) {
-    res.send({
-      msg: '获取成功',
-      list: ipList
-    })
+app.get('/api/getIps', async (req, res) => {
+  // async function getIps(callback) {
+  //   // let ips = ipProxy.ips
+  //   callback(ips)
+  //   // ips((err,response) => {
+  //   //   callback(response)
+  //   // })
+  // }
+  // getIps(function (ipList) {
+  //   console.log('ipList', ipList)
+  //   res.send({
+  //     msg: '获取成功',
+  //     list: ipList
+  //   })
+  // })
+  let ipdata = await iprequstFuc('http://http.tiqu.alicdns.com/getip3?num=20&type=2&pro=0&city=0&yys=0&port=11&pack=84314&ts=0&ys=0&cs=0&lb=1&sb=0&pb=4&mr=1&regions=110000,230000,310000,320000,440000,500000&gm=4')
+  res.send({
+    msg: '获取成功',
+    list: ipdata.data
   })
 })
 
@@ -174,6 +196,7 @@ app.get('/api/doubanList', (req, res) => {
     // $where: "label"
   }
   if (param.length) queryJson['$or'] = param
+  console.log('queryJson', queryJson)
   global.db.__find('douban', {queryJson, page, pageSize}, function (data) {
     res.send({
       msg: '获取成功',

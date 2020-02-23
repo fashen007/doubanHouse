@@ -16,6 +16,7 @@ function __connectDB(callback) {
     let db = client.db('zufangzi')
     callback(err, db, client)
   })
+  // }, { useNewUrlParser: true })
 }
 
 
@@ -45,6 +46,7 @@ function __insertMany(collectionName, Datajson, callback) {
     var collection = db.collection(collectionName);
     collection.insertMany(Datajson, function (err, result) {
       callback(err, result); // 通过回调函数上传数据
+      console.log('插入数据', Datajson)
       client.close();
     })
   })

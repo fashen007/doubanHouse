@@ -13,13 +13,13 @@ let server = app.listen(2333, "127.0.0.1", function () {
 app.use(express.static(path.resolve(__dirname, '../dist')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.get('/list',  async (req, res) => {
-    var params = req.query
-    console.log('params', params)
-    let ips = await getIps()
-    getData(ips)
-    res.send()
-})
+// app.get('/list',  async (req, res) => {
+//     var params = req.query
+//     console.log('params', params)
+//     let ips = await getIps()
+//     getData(ips)
+//     res.send()
+// })
 
 // const fs = require('fs')    // node的文件模块，用于将筛选后的数据输出为html
 // const path = require('path') // node的路径模块，用于处理文件的路径

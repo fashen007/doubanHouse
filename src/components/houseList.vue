@@ -7,7 +7,7 @@
       </Col>
       <Col span="6">
         <Select v-model="ip" style="width:200px">
-            <Option v-for="item in ipList" :value="`http://${item.ip}:${item.port}`" :key="item.ip">http://{{item.ip}}:{{item.port}}</Option>
+            <Option v-for="item in ipList" :value="`http://${item.ip}:${item.port}`" :key="`${item.ip}:${item.port}`">http://{{item.ip}}:{{item.port}}</Option>
         </Select>
          &nbsp;
         <Button type="primary" @click="spiderDataHandler" :loading="loading" :disabled='!this.ip'>爬取数据</Button>
