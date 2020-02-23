@@ -27,7 +27,13 @@ export const getIps = async (arg = {}) => {
   let respones = await axios.get('/api/getIps/', {
     params: arg
   })
-  console.log('respones', respones)
+  return respones.data
+}
+export const deleteByIds = async (arg = {}) => {
+  // 获取ip池
+  let respones = await axios.get('/api/deleteByIds/', {
+    params: arg
+  })
   return respones.data
 }
  

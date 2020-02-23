@@ -2,7 +2,7 @@
   <div style="padding: 10px 20px;">
     <Row style='margin-top: 20px'>
       <Col span="6">
-        <Button type="primary" @click="updateIpsHandler" :loading="loading">更新Ip池</Button> &nbsp;
+        <!-- <Button type="primary" @click="updateIpsHandler" :loading="loading">更新Ip池</Button> &nbsp; -->
         <Button type="primary" @click="getIpsHandler" :loading="loading">获取代理ip</Button>
       </Col>
       <Col span="6">
@@ -24,13 +24,23 @@
         </Checkbox-group>
       </Col>
     </Row>
-    <Table  :context="self" :columns="columns" :data="houseData"> </Table>
+    <Row style='margin-top: 20px; margin-bottom: 10px' type="flex" justify="center">
+      <Col span="22">&nbsp;</Col>
+      <Col span="2">
+        <Button :disabled='!selectItems.length' type="error" size="small" @click="remove(index, row)">批量删除</Button>
+      </Col>
+    </Row>
+    <Table  :context="self" :columns="columns" :data="houseData" @on-selection-change='selectChange'>
+      <template slot-scope="{ row, index }" slot="action">
+          <Button type="error" size="small" @click="remove(index, row)">删除</Button>
+      </template>
+    </Table>
     <Page style='float: right; margin-top: 20px' :current="page" :total="total" @on-change='pageChage'></Page>
   </div>
 </template>
 
 <script>
-import { getHousData, spiderData, updateIps, getIps } from "@/api/fetch";
+import { getHousData, spiderData, updateIps, getIps, deleteByIds} from "@/api/fetch";
 export default {
   name: "HelloWorld",
   props: {
@@ -51,6 +61,11 @@ export default {
       ipList: [],
       total: 0,
       columns: [
+        {
+          type: 'selection',
+          width: 60,
+          align: 'center'
+        },
         {
           title: "标题",
           key: "title",
@@ -87,6 +102,11 @@ export default {
         {
           title: "最后修改时间",
           key: "lastModify"
+        },
+        {
+          title: "操作",
+          key: "action",
+          slot: 'action'
         }
       ],
       houseData: [],
@@ -157,12 +177,20 @@ export default {
           label: "广州租房族",
           key: "gzzfz"
         }
-      ]
+      ],
+      selectItems: []
     };
   },
   methods: {
+    async remove(index, row) {
+      let data = await deleteByIds({ids: [row._id]})
+      console.log('data', data)
+    },
+    selectChange (arg) {
+      console.log('arg', arg)
+      this.selectItems = arg
+    },
     ratioChange(val) {
-      // console.log('val', val)
       // getHousData({area: val})
     },
     async spiderDataHandler() {
@@ -189,7 +217,6 @@ export default {
       // });
     },
     pageChage (val) {
-      console.log('val', val)
       this.page = val
       this.getList()
     }

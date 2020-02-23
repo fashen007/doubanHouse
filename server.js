@@ -52,23 +52,20 @@ const iprequstFuc = url => new Promise((resolve, reject) => request.get(url, (er
 // 接口中部分函数定义
 const getPageInfo = (ip, pageItem, callback) => {
   //  设置访问间隔
-  console.log('ip', ip)
-  let delay = parseInt((Math.random() * 30000000) % 1000, 10)
+  let delay = parseInt((Math.random() * 30000000) % 100, 10)
   let resultBack = {label: pageItem.key, list: []}
+  // console.log('pageItem.pageUrls', pageItem.pageUrls)
   pageItem.pageUrls.forEach(pageUrl => {
-    console.log('pageUrl.url', pageUrl.url)
     superagent.get(pageUrl.url).proxy(ip)
       // 模拟浏览器
       .set('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36')
       //  如果你不乖乖少量爬数据的话，很可能被豆瓣kill掉，这时候需要模拟登录状态才能访问
-      .set('Cookie', '{ttts:kz}')
+      .set('Cookie', '')
       .end((err, pres) => {
-        console.log('err', err, pres)
         if (err || !pres) {
           ep.emit('preparePage', [])
           return
         }
-        console.log('pres.text', pres.text)
         let $ = cheerio.load(pres.text) // 将页面数据用cheerio处理，生成一个类jQuery对象
         let itemList = $('.olt tbody').children().slice(1, 26) // 取出table中的每行数据，并过滤掉表格标题
         // 遍历页面中的每条数据
@@ -93,7 +90,6 @@ const getPageInfo = (ip, pageItem, callback) => {
           resultBack.list.push(data)
         }
         // ep.emit('事件名称', 数据内容)
-        console.log('resultBack', resultBack)
         ep.emit('preparePage', resultBack) // 每处理完一条数据，便把这条数据通过preparePage事件发送出去，这里主要是起计数的作用
         setTimeout(() => {
           callback(null, pageItem.url);
@@ -104,7 +100,6 @@ const getPageInfo = (ip, pageItem, callback) => {
 
 function getData(ip, res) {
   //  遍历爬取页面
-  console.log('开始爬取咯')
   async.mapLimit(groups, 1, function (item, callback) {
     getPageInfo(ip, item, callback);
   }, function (err) {
@@ -114,22 +109,21 @@ function getData(ip, res) {
     console.log('抓取完毕')
   });
 }
-console.log('allLength', allLength)
 ep.after('preparePage', allLength, function (data, res) {
   // 这里我们传入不想要出现的关键词，用'|'隔开 。比如排除一些位置，排除中介常用短语
-  let filterWords = /求组|合租|求租|主卧/
+  let filterWords = /求组|合租|求租|主卧|求整租/
   // 再次遍历抓取到的数据
   let inserTodbList = []
-  console.log('data', data)
   data.forEach(item => {
     //  这里if的顺序可是有讲究的，合理的排序可以提升程序的效率
     if (!item.list) return false
-    item.list = item.list.filter(() => {
-      if (item.markSum > 100) {
+    item.list = item.list.filter((ops) => {
+      if (ops.markSum > 100) {
         console.log('评论过多，丢弃')
         return false
       }
-      if (filterWords.test(item.title)) {
+      console.log('ops.title', ops.title)
+      if (filterWords.test(ops.title)) {
         console.log('标题带有不希望出现的词语')
         return false
       }
@@ -137,7 +131,7 @@ ep.after('preparePage', allLength, function (data, res) {
     })
     inserTodbList.push(...item.list)
   })
-  console.log('inserTodbList', inserTodbList)
+  // console.log('inserTodbList', inserTodbList)
   global.db.__insertMany('douban', inserTodbList, function () {
     ep.emit('spiderEnd', {})
   })
@@ -195,11 +189,24 @@ app.get('/api/doubanList', (req, res) => {
   let queryJson = {
     // $where: "label"
   }
+  // queryJson['$sort'] = [{ KEY: 1 }]
   if (param.length) queryJson['$or'] = param
   console.log('queryJson', queryJson)
   global.db.__find('douban', {queryJson, page, pageSize}, function (data) {
     res.send({
       msg: '获取成功',
+      ...data
+    })
+  })
+})
+// 根据id删除数据
+app.get('/api/deleteByIds', (req, res) => {
+  let {ids} = req.query
+  let param = ids.map((id) => id)
+  console.log('param', param)
+  global.db.__DeleteMany('douban', {'_id': {$in: param}}, function (data) {
+    res.send({
+      msg: '删除成功',
       ...data
     })
   })

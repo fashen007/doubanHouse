@@ -46,7 +46,6 @@ function __insertMany(collectionName, Datajson, callback) {
     var collection = db.collection(collectionName);
     collection.insertMany(Datajson, function (err, result) {
       callback(err, result); // 通过回调函数上传数据
-      console.log('插入数据', Datajson)
       client.close();
     })
   })
@@ -66,12 +65,11 @@ function __find(collectionName, {queryJson, page, pageSize}, callback) {
     return
   }
   __connectDB(async function (err, db, client) {
-    var cursor = db.collection(collectionName).find(queryJson).skip((page - 1) * pageSize).limit(10);
+    var cursor = db.collection(collectionName).find(queryJson).skip((page - 1) * pageSize).limit(10).sort({'_id': -1});
     let total = await cursor.count()
     if (!err) {
       await cursor.forEach(function (doc) {
         // 如果出错了，那么下面的也将不会执行了
-        // console.log('doc', doc)
         if (doc != null) {
           result.push(doc)
         }
@@ -94,6 +92,7 @@ function __DeleteMany(collectionName, json, callback) {
   __connectDB(function (err, db, client) {
     assert.equal(err, null)
     //删除
+    console.log('json', json)
     db.collection(collectionName).deleteMany(
       json,
       function (err, results) {
