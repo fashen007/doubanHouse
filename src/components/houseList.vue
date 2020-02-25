@@ -1,9 +1,13 @@
 <template>
   <div style="padding: 10px 20px;">
     <Row style='margin-top: 20px'>
-      <Col span="6">
+      <Col span="8">
         <!-- <Button type="primary" @click="updateIpsHandler" :loading="loading">更新Ip池</Button> &nbsp; -->
-        <Button type="primary" @click="getIpsHandler" :loading="loading">获取代理ip</Button>
+       <Input v-model="ipApiUrl" placeholder="请输入获取代理的API..." style='width: 100%' />
+      </Col>
+      <Col span="6" style="text-align:left">
+        <!-- <Button type="primary" @click="updateIpsHandler" :loading="loading">更新Ip池</Button> &nbsp; -->
+        <Button type="primary" @click="getIpsHandler" :loading="loading" >获取代理ip</Button>
       </Col>
       <Col span="6">
         <Select v-model="ip" style="width:200px">
@@ -25,39 +29,45 @@
       </Col>
     </Row>
     <Row style='margin-top: 20px; margin-bottom: 10px' type="flex" justify="center">
-      <Col span="22">&nbsp;</Col>
+      <Col span="16">&nbsp;</Col>
+      <Col span="6">
+        <Input search @on-search='searchKeyWords' enter-button placeholder="Enter something..." v-model="words"/>
+      </Col>
       <Col span="2">
-        <Button :disabled='!selectItems.length' type="error" size="small" @click="remove(index, row)">批量删除</Button>
+        <Button :disabled='!selectItems.length' type="error" @click="removeAll">批量删除</Button>
       </Col>
     </Row>
-    <Table  :context="self" :columns="columns" :data="houseData" @on-selection-change='selectChange'>
+    <Table  :context="self" :columns="columns" :data="houseData" @on-selection-change='selectChange' :loading="loading">
       <template slot-scope="{ row, index }" slot="action">
           <Button type="error" size="small" @click="remove(index, row)">删除</Button>
       </template>
     </Table>
-    <Page style='float: right; margin-top: 20px' :current="page" :total="total" @on-change='pageChage'></Page>
+    <Page style='float: right; margin-top: 20px' :current="page" :total="total" :page-size='pageSize' @on-change='pageChage' @on-page-size-change='changePagesize' show-sizer></Page>
   </div>
 </template>
 
 <script>
-import { getHousData, spiderData, updateIps, getIps, deleteByIds} from "@/api/fetch";
+import { getHousData, spiderData, updateIps, getIps, deleteRecord, searchRecord} from "@/api/fetch";
 export default {
   name: "HelloWorld",
   props: {
     msg: String
   },
   created () {
-    this.getIpsHandler()
     this.getList()
   },
   data() {
     return {
       nam: "",
-      araGroup: ['gzzf'],
+      araGroup: ['gzzf', 'gzyxzf', 'gzbyzf', 'gzthzf', 'gzlwzf', 
+      'gzpyzf', 'gzhzzf', 'gzzfgr', 'gzzfjy', 'gzzswl', 'gzgy', 'gzhz', 'gzzfz'] ,
       loading: false,
       self: this,
       page: 1,
+      pageSize: 20,
       ip: '',
+      words: '',
+      ipApiUrl: '',
       ipList: [],
       total: 0,
       columns: [
@@ -183,13 +193,27 @@ export default {
   },
   methods: {
     async remove(index, row) {
-      let data = await deleteByIds({ids: [row._id]})
-      console.log('data', data)
+      let data = await deleteRecord({ids: [row._id]})
+      this.houseData = this.houseData.filter((item) => item._id !== row._id)
+    },
+    async removeAll(index, row) {
+      let ids = this.selectItems.map((row) => row._id)
+      let data = await deleteRecord({ids})
+      this.houseData = this.houseData.filter((item) => !ids.includes(item._id))
+    },
+    changePagesize (size) {
+      this.pageSize = size
+      this.getList()
     },
     selectChange (arg) {
-      console.log('arg', arg)
       this.selectItems = arg
     },
+    async searchKeyWords () {
+      let { list, total} = await searchRecord({words: this.words})
+      this.total = total || 0
+      this.houseData = list;
+    },
+
     ratioChange(val) {
       // getHousData({area: val})
     },
@@ -201,15 +225,20 @@ export default {
     updateIpsHandler () {
       updateIps()
     },
+
     async getIpsHandler () {
-      let {list} = await getIps()
+      if (!this.ipApiUrl) {
+        this.$Message.warning('请输入IP API') 
+        return
+      }
+      let {list} = await getIps({url: this.ipApiUrl})
       this.ipList = []
       list.map((ls) => {
         if (!this.ipList.some((o) => o.ip === ls.ip && o.port === ls.port))this.ipList.push(ls)
       })
     },
     async getList () {
-      let { list, total} = await getHousData({ label: this.araGroup, page: this.page});
+      let { list, total} = await getHousData({ label: this.araGroup, page: this.page, pageSize: this.pageSize});
       this.total = total || 0
       this.houseData = list;
       // list.map(item => {

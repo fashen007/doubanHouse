@@ -65,7 +65,7 @@ function __find(collectionName, {queryJson, page, pageSize}, callback) {
     return
   }
   __connectDB(async function (err, db, client) {
-    var cursor = db.collection(collectionName).find(queryJson).skip((page - 1) * pageSize).limit(10).sort({'_id': -1});
+    var cursor = db.collection(collectionName).find(queryJson).skip((page - 1) * pageSize).limit(Number(pageSize)).sort({'_id': -1});
     let total = await cursor.count()
     if (!err) {
       await cursor.forEach(function (doc) {
@@ -92,7 +92,7 @@ function __DeleteMany(collectionName, json, callback) {
   __connectDB(function (err, db, client) {
     assert.equal(err, null)
     //删除
-    console.log('json', json)
+    // console.log('json', json)
     db.collection(collectionName).deleteMany(
       json,
       function (err, results) {

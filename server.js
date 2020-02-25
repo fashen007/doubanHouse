@@ -2,14 +2,17 @@
 // 服务启动
 // 服务启动
 const express = require('express');
+var bodyParser = require('body-parser');
+var multer = require('multer'); 
 const app = express();
 let server = app.listen(2333, "127.0.0.1", function () {
   let host = server.address().address;
   let port = server.address().port;
   console.log('Your App is running at' + host + ':' + port, );
 })
-
-
+app.use(bodyParser.json()); // for parsing application/json
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(multer());
 // 插件
 // 插件
 // 插件
@@ -20,7 +23,7 @@ var request = require('request');
 const cheerio = require('cheerio');
 const async = require('async');
 require('superagent-proxy')(superagent);
-
+var ObjectId = require('mongodb').ObjectID
 
 // 爬虫基本配置，后续可以从界面端传进来
 const groups = require('./server/urls') // 租房小组的url,
@@ -52,7 +55,7 @@ const iprequstFuc = url => new Promise((resolve, reject) => request.get(url, (er
 // 接口中部分函数定义
 const getPageInfo = (ip, pageItem, callback) => {
   //  设置访问间隔
-  let delay = parseInt((Math.random() * 30000000) % 100, 10)
+  let delay = parseInt((Math.random() * 30000000) % 1000, 10)
   let resultBack = {label: pageItem.key, list: []}
   // console.log('pageItem.pageUrls', pageItem.pageUrls)
   pageItem.pageUrls.forEach(pageUrl => {
@@ -111,7 +114,7 @@ function getData(ip, res) {
 }
 ep.after('preparePage', allLength, function (data, res) {
   // 这里我们传入不想要出现的关键词，用'|'隔开 。比如排除一些位置，排除中介常用短语
-  let filterWords = /求组|合租|求租|主卧|求整租/
+  let filterWords = /求组|合租|求租|主卧|求整租|找室友|征室友|交友|次卧/
   // 再次遍历抓取到的数据
   let inserTodbList = []
   data.forEach(item => {
@@ -141,7 +144,7 @@ ep.after('preparePage', allLength, function (data, res) {
 // 接口
 
 // 获取ip
-app.get('/api/getIps', async (req, res) => {
+app.post('/api/getIps/', async (req, res) => {
   // async function getIps(callback) {
   //   // let ips = ipProxy.ips
   //   callback(ips)
@@ -156,7 +159,18 @@ app.get('/api/getIps', async (req, res) => {
   //     list: ipList
   //   })
   // })
-  let ipdata = await iprequstFuc('http://http.tiqu.alicdns.com/getip3?num=20&type=2&pro=0&city=0&yys=0&port=11&pack=84314&ts=0&ys=0&cs=0&lb=1&sb=0&pb=4&mr=1&regions=110000,230000,310000,320000,440000,500000&gm=4')
+  console.log('req.body.param', )
+  let {url} = req.body.params
+  if (!url) {
+    res.send({
+      msg: '获取ip失败，未有输入API',
+      list: []
+    })
+    return
+  }
+  console.log('到这一步了', url)
+  let ipdata = await iprequstFuc(url)
+  console.log('ipdata', ipdata)
   res.send({
     msg: '获取成功',
     list: ipdata.data
@@ -191,7 +205,19 @@ app.get('/api/doubanList', (req, res) => {
   }
   // queryJson['$sort'] = [{ KEY: 1 }]
   if (param.length) queryJson['$or'] = param
-  console.log('queryJson', queryJson)
+  global.db.__find('douban', {queryJson, page, pageSize}, function (data) {
+    res.send({
+      msg: '获取成功',
+      ...data
+    })
+  })
+})
+// 根据根据关键字搜索内容
+app.get('/api/searchRecord', (req, res) => {
+  let {words, page = 1, pageSize = 10} = req.query
+  let queryJson = {
+    'title': new RegExp(words,"g")
+  }
   global.db.__find('douban', {queryJson, page, pageSize}, function (data) {
     res.send({
       msg: '获取成功',
@@ -200,11 +226,12 @@ app.get('/api/doubanList', (req, res) => {
   })
 })
 // 根据id删除数据
-app.get('/api/deleteByIds', (req, res) => {
+app.get('/api/deleteRecord', (req, res) => {
   let {ids} = req.query
-  let param = ids.map((id) => id)
-  console.log('param', param)
-  global.db.__DeleteMany('douban', {'_id': {$in: param}}, function (data) {
+  const list = ids.map((id) => {
+    return new ObjectId(id)
+  })
+  global.db.__DeleteMany('douban', {_id: {$in: list}}, function (data) {
     res.send({
       msg: '删除成功',
       ...data

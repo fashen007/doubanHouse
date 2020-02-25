@@ -24,14 +24,20 @@ export const updateIps = async (arg = {}) => {
  
 export const getIps = async (arg = {}) => {
   // 获取ip池
-  let respones = await axios.get('/api/getIps/', {
+  let respones = await axios.post('/api/getIps/', {
     params: arg
   })
   return respones.data
 }
-export const deleteByIds = async (arg = {}) => {
-  // 获取ip池
-  let respones = await axios.get('/api/deleteByIds/', {
+export const searchRecord = async (arg = {}) => {
+  // 搜索
+  let respones = await axios.get('/api/searchRecord/', {
+    params: arg
+  })
+  return respones.data
+}
+export const deleteRecord = async (arg = {}) => {
+  let respones = await axios.get('/api/deleteRecord/', {
     params: arg
   })
   return respones.data
