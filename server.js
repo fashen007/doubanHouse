@@ -114,7 +114,7 @@ function getData(ip, res) {
 }
 ep.after('preparePage', allLength, function (data, res) {
   // 这里我们传入不想要出现的关键词，用'|'隔开 。比如排除一些位置，排除中介常用短语
-  let filterWords = /求组|合租|求租|主卧|求整租|找室友|征室友|交友|次卧/
+  let filterWords = /求组|合租|求租|主卧|求整租|找室友|征室友|交友|次卧|跪求|寻租/
   // 再次遍历抓取到的数据
   let inserTodbList = []
   data.forEach(item => {
@@ -134,7 +134,16 @@ ep.after('preparePage', allLength, function (data, res) {
     })
     inserTodbList.push(...item.list)
   })
-  // console.log('inserTodbList', inserTodbList)
+  // console.log('什么进展？')
+  let uniqueTitle = []
+  let uniqueList = []
+  inserTodbList.map((item) => {
+    console.log('item', item)
+    if (!uniqueTitle.includes(item.title)) {
+      uniqueList.push(item)
+      uniqueTitle.push(item.title)
+    }
+  })
   global.db.__insertMany('douban', inserTodbList, function () {
     ep.emit('spiderEnd', {})
   })

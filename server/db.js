@@ -48,6 +48,10 @@ function __insertMany(collectionName, Datajson, callback) {
       callback(err, result); // 通过回调函数上传数据
       client.close();
     })
+    // collection.update({title: Datajson.title}, {$set: Datajson}, {upsert: true}, function (err, result) {
+    //   callback(err, result);
+    //   client.close();
+    // })
   })
 }
 
