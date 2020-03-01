@@ -44,11 +44,14 @@ function __insertOne(collectionName, Datajson, callback) {
 function __insertMany(collectionName, Datajson, callback) {
   __connectDB(function (err, db, client) {
     var collection = db.collection(collectionName);
-    collection.insertMany(Datajson, function (err, result) {
+    collection.insertMany(Datajson, {ordered: false}, function (err, result) {
+      console.log('入库完成', Datajson)
       callback(err, result); // 通过回调函数上传数据
       client.close();
     })
-    // collection.update({title: Datajson.title}, {$set: Datajson}, {upsert: true}, function (err, result) {
+    // update_many
+    // console.log('Datajson', Datajson)
+    // collection.updateMany(Datajson, {$set: Datajson}, true, function (err, result) {
     //   callback(err, result);
     //   client.close();
     // })
@@ -62,14 +65,14 @@ function __insertMany(collectionName, Datajson, callback) {
  * @param {*} callback 回调函数
  */
 
-function __find(collectionName, {queryJson, page, pageSize}, callback) {
+function __find(collectionName, {queryJson, page, pageSize, sort}, callback) {
   var result = [];
   if (arguments.length != 3) {
     callback("find函数必须传入三个参数哦", null)
     return
   }
   __connectDB(async function (err, db, client) {
-    var cursor = db.collection(collectionName).find(queryJson).skip((page - 1) * pageSize).limit(Number(pageSize)).sort({'_id': -1});
+    var cursor = db.collection(collectionName).find(queryJson).skip((page - 1) * pageSize).limit(Number(pageSize)).sort(sort);
     let total = await cursor.count()
     if (!err) {
       await cursor.forEach(function (doc) {

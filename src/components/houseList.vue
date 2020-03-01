@@ -9,7 +9,7 @@
         <!-- <Button type="primary" @click="updateIpsHandler" :loading="loading">更新Ip池</Button> &nbsp; -->
         <Button type="primary" @click="getIpsHandler" :loading="loading" >获取代理ip</Button>
       </Col>
-      <Col span="6">
+      <Col span="8">
         <Select v-model="ip" style="width:200px">
             <Option v-for="item in ipList" :value="`http://${item.ip}:${item.port}`" :key="`${item.ip}:${item.port}`">http://{{item.ip}}:{{item.port}}</Option>
         </Select>
@@ -55,12 +55,18 @@ export default {
   },
   created () {
     this.getList()
+    this.ipApiUrl = sessionStorage.getItem('IPURL')
+    let ipList = sessionStorage.getItem('IPLIST')
+    this.ipList = JSON.parse(ipList)
+    let araGroup = sessionStorage.getItem('araGroup')
+    this.araGroup = JSON.parse(araGroup) || []
+   
   },
   data() {
     return {
       nam: "",
       araGroup: ['gzzf', 'gzyxzf', 'gzbyzf', 'gzthzf', 'gzlwzf', 
-      'gzpyzf', 'gzhzzf', 'gzzfgr', 'gzzfjy', 'gzzswl', 'gzgy', 'gzhz', 'gzzfz'] ,
+      'gzpyzf', 'gzhzzf', 'gzzfgr', 'gzzfjy', 'gzzswl', 'gzgy', 'gzhz', 'gzzfz', 'ilovegz'] ,
       loading: false,
       self: this,
       page: 1,
@@ -186,6 +192,11 @@ export default {
           url: "https://www.douban.com/group/zunar_gz/",
           label: "广州租房族",
           key: "gzzfz"
+        },
+        {
+          url: "https://www.douban.com/group/IloveGZ/",
+          label: "广州租房（好评度★★★★★）",
+          key: "ilovegz"
         }
       ],
       selectItems: []
@@ -209,7 +220,7 @@ export default {
       this.selectItems = arg
     },
     async searchKeyWords () {
-      let { list, total} = await searchRecord({words: this.words})
+      let { list, total} = await searchRecord({words: this.words, page: this.page, pageSize: this.pageSize})
       this.total = total || 0
       this.houseData = list;
     },
@@ -219,8 +230,9 @@ export default {
     },
     async spiderDataHandler() {
       this.loading = true;
-      let data = await spiderData({ip: this.ip});
+      let data = await spiderData({ip: this.ip, keys: this.araGroup});
       this.loading = false;
+      this.getList()
     },
     updateIpsHandler () {
       updateIps()
@@ -234,8 +246,10 @@ export default {
       let {list} = await getIps({url: this.ipApiUrl})
       this.ipList = []
       list.map((ls) => {
-        if (!this.ipList.some((o) => o.ip === ls.ip && o.port === ls.port))this.ipList.push(ls)
+        // if (!ls.ip) ls.ip = ls.ip
+        if (!this.ipList.some((o) => o.ip === ls.ip && o.port === ls.port)) this.ipList.push(ls)
       })
+      sessionStorage.setItem('IPLIST', JSON.stringify(this.ipList))
     },
     async getList () {
       let { list, total} = await getHousData({ label: this.araGroup, page: this.page, pageSize: this.pageSize});
@@ -247,12 +261,18 @@ export default {
     },
     pageChage (val) {
       this.page = val
+      if (this.words) return this.searchKeyWords()
       this.getList()
     }
   },
   watch: {
-    araGroup(val) {
+    araGroup(val, old) {
+      if(val !== old) sessionStorage.setItem('araGroup', JSON.stringify(val))
       this.getList()
+    },
+    ipApiUrl(val, old) {
+      if (val === old) return
+      sessionStorage.setItem('IPURL', val)
     }
   }
 };

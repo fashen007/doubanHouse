@@ -52,4 +52,8 @@ module.exports = urls = [{
     url: 'https://www.douban.com/group/zunar_gz/?start=',
     label: '广州租房族',
     key: 'gzzfz'
+  }, {
+    url: 'https://www.douban.com/group/IloveGZ/?start=',
+    label: '广州租房（好评度★★★★★）',
+    key: 'ilovegz'
   }]
