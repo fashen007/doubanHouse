@@ -2209,6 +2209,14 @@ binary-extensions@^1.0.0:
   resolved "https://registry.npm.taobao.org/binary-extensions/download/binary-extensions-1.13.1.tgz#598afe54755b2868a5330d2aff9d4ebb53209b65"
   integrity sha1-WYr+VHVbKGilMw0q/51Ou1Mgm2U=
 
+bl@^2.2.1:
+  version "2.2.1"
+  resolved "http://npm.kuaizitech.cn/bl/-/bl-2.2.1.tgz#8c11a7b730655c5d56898cdc871224f40fd901d5"
+  integrity sha1-jBGntzBlXF1WiYzchxIk9A/ZAdU=
+  dependencies:
+    readable-stream "^2.3.5"
+    safe-buffer "^5.1.1"
+
 blessed@^0.1.81:
   version "0.1.81"
   resolved "http://npm.kuaizitech.cn/blessed/-/blessed-0.1.81.tgz#f962d687ec2c369570ae71af843256e6d0ca1129"
@@ -2368,10 +2376,10 @@ browserslist@^4.0.0, browserslist@^4.3.4, browserslist@^4.5.4, browserslist@^4.6
     electron-to-chromium "^1.3.164"
     node-releases "^1.1.23"
 
-bson@^1.1.1:
-  version "1.1.1"
-  resolved "http://npm.kuaizitech.cn/bson/-/bson-1.1.1.tgz#4330f5e99104c4e751e7351859e2d408279f2f13"
-  integrity sha1-QzD16ZEExOdR5zUYWeLUCCefLxM=
+bson@^1.1.4:
+  version "1.1.5"
+  resolved "http://npm.kuaizitech.cn/bson/-/bson-1.1.5.tgz#2aaae98fcdf6750c0848b0cba1ddec3c73060a34"
+  integrity sha1-Kqrpj832dQwISLDLod3sPHMGCjQ=
 
 buffer-from@^1.0.0:
   version "1.1.1"
@@ -3474,6 +3482,11 @@ delegates@^1.0.0:
   version "1.0.0"
   resolved "https://registry.npm.taobao.org/delegates/download/delegates-1.0.0.tgz?cache=0&other_urls=https%3A%2F%2Fregistry.npm.taobao.org%2Fdelegates%2Fdownload%2Fdelegates-1.0.0.tgz#84c6e159b81904fdca59a0ef44cd870d31250f9a"
   integrity sha1-hMbhWbgZBP3KWaDvRM2HDTElD5o=
+
+denque@^1.4.1:
+  version "1.4.1"
+  resolved "http://npm.kuaizitech.cn/denque/-/denque-1.4.1.tgz#6744ff7641c148c3f8a69c307e51235c1f4a37cf"
+  integrity sha1-Z0T/dkHBSMP4ppwwflEjXB9KN88=
 
 depd@~1.1.2:
   version "1.1.2"
@@ -6337,24 +6350,18 @@ moment-timezone@^0.5.x:
   resolved "http://npm.kuaizitech.cn/moment/-/moment-2.24.0.tgz#0d055d53f5052aa653c9f6eb68bb5d12bf5c2b5b"
   integrity sha1-DQVdU/UFKqZTyfbraLtdEr9cK1s=
 
-mongodb-core@3.2.7:
-  version "3.2.7"
-  resolved "http://npm.kuaizitech.cn/mongodb-core/-/mongodb-core-3.2.7.tgz#a8ef1fe764a192c979252dacbc600dc88d77e28f"
-  integrity sha1-qO8f52Shksl5JS2svGANyI134o8=
+mongodb@^3.6.3:
+  version "3.6.3"
+  resolved "http://npm.kuaizitech.cn/mongodb/-/mongodb-3.6.3.tgz#eddaed0cc3598474d7a15f0f2a5b04848489fd05"
+  integrity sha1-7drtDMNZhHTXoV8PKlsEhISJ/QU=
   dependencies:
-    bson "^1.1.1"
+    bl "^2.2.1"
+    bson "^1.1.4"
+    denque "^1.4.1"
     require_optional "^1.0.1"
     safe-buffer "^5.1.2"
   optionalDependencies:
     saslprep "^1.0.0"
-
-mongodb@^3.2.7:
-  version "3.2.7"
-  resolved "http://npm.kuaizitech.cn/mongodb/-/mongodb-3.2.7.tgz#8ba149e4be708257cad0dea72aebb2bbb311a7ac"
-  integrity sha1-i6FJ5L5wglfK0N6nKuuyu7MRp6w=
-  dependencies:
-    mongodb-core "3.2.7"
-    safe-buffer "^5.1.2"
 
 move-concurrently@^1.0.1:
   version "1.0.1"
@@ -7127,6 +7134,14 @@ path-type@^3.0.0:
   dependencies:
     pify "^3.0.0"
 
+path@^0.12.7:
+  version "0.12.7"
+  resolved "http://npm.kuaizitech.cn/path/-/path-0.12.7.tgz#d4dc2a506c4ce2197eb481ebfcd5b36c0140b10f"
+  integrity sha1-1NwqUGxM4hl+tIHr/NWzbAFAsQ8=
+  dependencies:
+    process "^0.11.1"
+    util "^0.10.3"
+
 pbkdf2@^3.0.3:
   version "3.0.17"
   resolved "https://registry.npm.taobao.org/pbkdf2/download/pbkdf2-3.0.17.tgz#976c206530617b14ebb32114239f7b09336e93a6"
@@ -7673,7 +7688,7 @@ process-nextick-args@~2.0.0:
   resolved "https://registry.npm.taobao.org/process-nextick-args/download/process-nextick-args-2.0.0.tgz#a37d732f4271b4ab1ad070d35508e8290788ffaa"
   integrity sha1-o31zL0JxtKsa0HDTVQjoKQeI/6o=
 
-process@^0.11.10:
+process@^0.11.1, process@^0.11.10:
   version "0.11.10"
   resolved "https://registry.npm.taobao.org/process/download/process-0.11.10.tgz#7332300e840161bda3e69a1d1d91a7d4bc16f182"
   integrity sha1-czIwDoQBYb2j5podHZGn1LwW8YI=
@@ -7935,6 +7950,19 @@ readable-stream@3, readable-stream@^3.0.6, readable-stream@^3.1.1, readable-stre
     inherits "^2.0.3"
     string_decoder "^1.1.1"
     util-deprecate "^1.0.1"
+
+readable-stream@^2.3.5:
+  version "2.3.7"
+  resolved "http://npm.kuaizitech.cn/readable-stream/-/readable-stream-2.3.7.tgz#1eca1cf711aef814c04f62252a36a62f6cb23b57"
+  integrity sha1-Hsoc9xGu+BTAT2IlKjamL2yyO1c=
+  dependencies:
+    core-util-is "~1.0.0"
+    inherits "~2.0.3"
+    isarray "~1.0.0"
+    process-nextick-args "~2.0.0"
+    safe-buffer "~5.1.1"
+    string_decoder "~1.1.1"
+    util-deprecate "~1.0.1"
 
 readdirp@^2.0.0, readdirp@^2.2.1:
   version "2.2.1"
@@ -9517,6 +9545,13 @@ util@0.10.3:
   integrity sha1-evsa/lCAUkZInj23/g7TeTNqwPk=
   dependencies:
     inherits "2.0.1"
+
+util@^0.10.3:
+  version "0.10.4"
+  resolved "http://npm.kuaizitech.cn/util/-/util-0.10.4.tgz#3aa0125bfe668a4672de58857d3ace27ecb76901"
+  integrity sha1-OqASW/5mikZy3liFfTrOJ+y3aQE=
+  dependencies:
+    inherits "2.0.3"
 
 util@^0.11.0:
   version "0.11.1"

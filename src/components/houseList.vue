@@ -1,31 +1,54 @@
 <template>
   <div style="padding: 10px 20px;">
     <Row style='margin-top: 20px'>
-      <Col span="8">
-        <!-- <Button type="primary" @click="updateIpsHandler" :loading="loading">更新Ip池</Button> &nbsp; -->
+       <Col span="2"> 获取代理IP：</Col>
+      <Col span="6">
        <Input v-model="ipApiUrl" placeholder="请输入获取代理的API..." style='width: 100%' />
       </Col>
-      <Col span="6" style="text-align:left">
+      <Col span="8" style="text-align:left;margin-left:10px">
         <!-- <Button type="primary" @click="updateIpsHandler" :loading="loading">更新Ip池</Button> &nbsp; -->
-        <Button type="primary" @click="getIpsHandler" :loading="loading" >获取代理ip</Button>
+        <Button type="primary" @click="getIpsHandler" :disabled="!ipApiUrl">获取代理ip</Button>
+        <Tooltip max-width="200" content='从http://zhimahttp.com/getapi/（芝麻代理）获取IP链接，进行解析，注意需要json格式'>
+          <Icon type="ios-help-circle" style="font-size: 20px; color: #888; margin-left:5px"/>
+        </Tooltip>
       </Col>
-      <Col span="8">
-        <Select v-model="ip" style="width:200px">
-            <Option v-for="item in ipList" :value="`http://${item.ip}:${item.port}`" :key="`${item.ip}:${item.port}`">http://{{item.ip}}:{{item.port}}</Option>
-        </Select>
-         &nbsp;
-        <Button type="primary" @click="spiderDataHandler" :loading="loading" :disabled='!this.ip'>爬取数据</Button>
-      </Col>
+      
     </Row>
     <Row style='margin-top: 20px'>
-      <Col span="2"> 地区：</Col>
-      <Col span="20">
+      <Col span="2"> 豆瓣小组：</Col>
+      <Col span="21" style="text-align:left">
         <Checkbox-group v-model="araGroup" style="margin-bottom: 20px">
           <Checkbox :label="item.key" v-for="item in urls" :key="item.key">
             <Icon :type="item.icon" />
-            <span>{{item.label}}</span>
+            <a :href="item.url" target="_blank">{{item.label}}</a>
           </Checkbox>
         </Checkbox-group>
+      </Col>
+    </Row>
+    <Row style='margin-top: 20px'>
+      <Col span="2"> 过滤：</Col>
+      <Col span="21" style="text-align:left">
+        <Checkbox-group v-model="defaultWords" style="margin-bottom: 20px">
+          <Checkbox :label="item" v-for="item in filterWordsArr" :key="item">
+            <span >{{item}}</span>
+          </Checkbox>
+        </Checkbox-group>
+      </Col>
+    </Row>
+    <Row style='margin-top: 20px'>
+      <Col span="2"> 含有：</Col>
+      <Col span="6" style="text-align:left">
+         <Input placeholder="输入包含的关键字" v-model="spiderWords"/>
+      </Col>
+      <Col span="6">
+        <Select v-model="ip" style="width:200px" placeholder="选择爬虫IP">
+            <Option v-for="item in ipList" :value="`http://${item.ip}:${item.port}`" :key="`${item.ip}:${item.port}`">http://{{item.ip}}:{{item.port}}</Option>
+        </Select>
+         &nbsp;
+        <Tooltip max-width="200" content='IP爬取过一次可能会被封，需要重新获取IP'>
+          <Button type="primary" @click="spiderDataHandler" :loading="loading" :disabled='!this.ip'>开始爬取数据</Button>
+        </Tooltip>
+        
       </Col>
     </Row>
     <Row style='margin-top: 20px; margin-bottom: 10px' type="flex" justify="center">
@@ -42,12 +65,13 @@
           <Button type="error" size="small" @click="remove(index, row)">删除</Button>
       </template>
     </Table>
-    <Page style='float: right; margin-top: 20px' :current="page" :total="total" :page-size='pageSize' @on-change='pageChage' @on-page-size-change='changePagesize' show-sizer></Page>
+    <Page style='float: right; margin-top: 20px' :current="page" :total="total" :page-size='pageSize' @on-change='pageChage' @on-page-size-change='changePagesize' show-sizer :page-size-opts='[10,20,40,80,100]'></Page>
   </div>
 </template>
 
 <script>
 import { getHousData, spiderData, updateIps, getIps, deleteRecord, searchRecord} from "@/api/fetch";
+import urls from 'server/urls'
 export default {
   name: "HelloWorld",
   props: {
@@ -66,7 +90,7 @@ export default {
     return {
       nam: "",
       araGroup: ['gzzf', 'gzyxzf', 'gzbyzf', 'gzthzf', 'gzlwzf', 
-      'gzpyzf', 'gzhzzf', 'gzzfgr', 'gzzfjy', 'gzzswl', 'gzgy', 'gzhz', 'gzzfz', 'ilovegz'] ,
+      'gzpyzf', 'gzhzzf', 'gzzfgr', 'gzzfjy', 'gzzswl', 'gzgy', 'gzhz', 'gzzfz', 'gzzzq','gzbyqzf','gzmfzfdjh','gzzf2','fdzzdjzj','gzzf4', 'ilovegz'] ,
       loading: false,
       self: this,
       page: 1,
@@ -126,79 +150,12 @@ export default {
         }
       ],
       houseData: [],
-      urls: [
-        {
-          url: "https://www.douban.com/group/gz020/",
-          label: "广州租房★",
-          key: "gzzf",
-          icon: 'ios-cafe'
-        },
-        {
-          url: "https://www.douban.com/group/yuexiuzufang/",
-          label: "广州越秀租房",
-          key: "gzyxzf"
-        },
-        {
-          url: "https://www.douban.com/group/baiyunzufang/",
-          label: "广州白云租房",
-          key: "gzbyzf"
-        },
-        {
-          url: "https://www.douban.com/group/tianhezufang/",
-          label: "广州天河租房",
-          key: "gzthzf"
-        },
-        {
-          url: "https://www.douban.com/group/liwanzufang/",
-          label: "广州荔湾租房",
-          key: "gzlwzf"
-        },
-        {
-          url: "https://www.douban.com/group/haizhuzufang/",
-          label: "广州海珠租房",
-          key: "gzhzzf"
-        },
-        {
-          url: "https://www.douban.com/group/panyuzufang/",
-          label: "广州番禺租房",
-          key: "gzpyzf"
-        },
-        {
-          url: "https://www.douban.com/group/gz_rent/",
-          label: "广州租房",
-          key: "gzzfgr"
-        },
-        {
-          url: "https://www.douban.com/group/zu.gz.soufun/",
-          label: "广州租房交友",
-          key: "gzzfjy"
-        },
-        {
-          url: "https://www.douban.com/group/366393/",
-          label: "广州真房实客网租房组",
-          key: "gzzswl"
-        },
-        {
-          url: "https://www.douban.com/group/366393/",
-          label: "广州公寓租房信息",
-          key: "gzgy"
-        },
-        {
-          url: "https://www.douban.com/group/216688/",
-          label: "广州合租联盟---大学",
-          key: "gzhz"
-        },
-        {
-          url: "https://www.douban.com/group/zunar_gz/",
-          label: "广州租房族",
-          key: "gzzfz"
-        },
-        {
-          url: "https://www.douban.com/group/IloveGZ/",
-          label: "广州租房（好评度★★★★★）",
-          key: "ilovegz"
-        }
+      urls: urls,
+      defaultWords: ["求组","合租", "求租", "主卧", "求整租","室友", "交友", "次卧", "跪求", "寻租", "组长", "房东群", "舍友", "教你", "招室友", "限女", "限男"],
+      filterWordsArr: [
+        "求组","合租", "求租", "主卧", "求整租","室友", "交友", "次卧", "跪求", "寻租", "组长", "房东群", "舍友", "教你", "招室友", "限女", "限男"
       ],
+      spiderWords: '',
       selectItems: []
     };
   },
@@ -230,8 +187,13 @@ export default {
     },
     async spiderDataHandler() {
       this.loading = true;
-      let data = await spiderData({ip: this.ip, keys: this.araGroup});
+      let data = await spiderData({ip: this.ip, keys: this.araGroup, filterWords: this.filterWords, spiderWords: this.spiderWords});
+      console.log('data', data)
       this.loading = false;
+      if (data.code === -1) {
+        this.$Message.error(data.msg)
+        return
+      }
       this.getList()
     },
     updateIpsHandler () {
@@ -250,6 +212,7 @@ export default {
         if (!this.ipList.some((o) => o.ip === ls.ip && o.port === ls.port)) this.ipList.push(ls)
       })
       sessionStorage.setItem('IPLIST', JSON.stringify(this.ipList))
+      this.$Message.success('获取成功') 
     },
     async getList () {
       let { list, total} = await getHousData({ label: this.araGroup, page: this.page, pageSize: this.pageSize});

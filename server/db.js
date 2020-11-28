@@ -5,18 +5,23 @@
  */
 
 var MongodbClient = require('mongodb').MongoClient
+// var DB = require('mongodb').Db
 var assert = require('assert')
-var url = "mongodb://localhost:27017";
+var url = "mongodb://127.0.0.1:27017";
 /**
  * 连接数据库
  */
 
 function __connectDB(callback) {
-  MongodbClient.connect(url, function (err, client) {
+  MongodbClient.connect(url,{ useUnifiedTopology: true }, function (err, client) {
+    if (err) {
+      throw err;
+    }
     let db = client.db('zufangzi')
+    // let db = new DB('zufangzi')
     callback(err, db, client)
+    // client.close();
   })
-  // }, { useNewUrlParser: true })
 }
 
 

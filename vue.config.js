@@ -1,3 +1,4 @@
+const path = require('path');
 module.exports = {
   // 修改的配置
   publicPath: '/',
@@ -5,6 +6,7 @@ module.exports = {
     resolve: {
       alias: {
         'src': '@/api',
+        'server': path.resolve(__dirname, 'server/'),
         'components': '@/components',
         'views': '@/views',
       }

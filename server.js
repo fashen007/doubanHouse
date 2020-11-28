@@ -48,7 +48,7 @@ const iprequstFuc = url => new Promise((resolve, reject) => request.get(url, (er
   if (err) {
   reject(err);
   } else {
-  resolve(JSON.parse(body));
+    resolve(JSON.parse(body));
   }
 }))
 
@@ -66,10 +66,10 @@ const getPageInfo = (ip, pageItem, callback) => {
       .set('Cookie', '')
       .end((err, pres) => {
         // console.log('能进来吗？', pres)
-        console.log('进到这里来了')
+        console.log('爬取进行中')
         if (err || !pres) {
           console.log('爬取失败了')
-          ep.emit('preparePage', [])
+          ep.emit('spiderFailure', {})
           return
         }
         let $ = cheerio.load(pres.text) // 将页面数据用cheerio处理，生成一个类jQuery对象
@@ -105,16 +105,16 @@ const getPageInfo = (ip, pageItem, callback) => {
   })
 }
 
-function getData(ip, keys, res) {
+function getData(query, res) {
+  let {ip, keys, filterWords, spiderWords} = query
   //  遍历爬取页面
   let tempGroup = groups.filter((item) =>  keys.includes(item.key))
-  console.log('tempGroup.length * page', tempGroup.length * page)
   ep.after('preparePage', tempGroup.length * page, function (data, res) {
     // 这里我们传入不想要出现的关键词，用'|'隔开 。比如排除一些位置，排除中介常用短语
-    let filterWords = /求组|合租|求租|主卧|求整租|室友|交友|次卧|跪求|寻租|组长|房东群|舍友|教你|招室友|限女|限男/
+    let filterWordsExp = new RegExp(filterWords.join("|"))
+    let spiderWordsExp = new RegExp(fspiderWords)
     // 再次遍历抓取到的数据
     let inserTodbList = []
-    console.log('here')
     data.forEach(item => {
       //  这里if的顺序可是有讲究的，合理的排序可以提升程序的效率
       console.log('便利村粗', item.list)
@@ -125,15 +125,18 @@ function getData(ip, keys, res) {
           return false
         }
         console.log('ops.title', ops.title)
-        if (filterWords.test(ops.title)) {
-          console.log('标题带有不希望出现的词语')
+        if (filterWords.length && filterWordsExp.test(ops.title)) {
+          // 含有排除的文案需要要排除
+          return false
+        }
+        if (fspiderWords &&!spiderWordsExp.test(ops.title)) {
+          // 不含有指定的文案的也要排除
           return false
         }
         return true
       })
       inserTodbList.push(...item.list)
     })
-    console.log('什么进展？')
     let uniqueTitle = []
     let uniqueList = []
     inserTodbList.map((item) => {
@@ -200,11 +203,17 @@ app.get('/api/updateIps', (req, res) => {
 })
 // 向豆瓣爬取
 app.get('/api/getDataFromDouBan', (req, res) => {
-  let {ip, keys} = req.query
-  getData(ip,keys, res)
+  // let {ip, keys, filterWords, spiderWords} = req.query
+  getData(req.query,res)
   ep.after('spiderEnd', 1, function() {
     res.send({
       data: '爬取结束'
+    })
+  })
+  ep.after('spiderFailure', 1, function() {
+    res.send({
+      msg: '爬取失败，请更新IP',
+      code: -1
     })
   })
 })
