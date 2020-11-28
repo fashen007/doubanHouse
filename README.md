@@ -1,5 +1,5 @@
 # zufangzi
-
+![效果图](https://github.com/spademan/doubanHouse/blob/dev/src/assets/%E9%A2%84%E8%A7%88%E6%95%88%E6%9E%9C.png)
 > 豆瓣租房子小组爬虫
 
 ### 本地启动
