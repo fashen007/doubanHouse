@@ -8,7 +8,8 @@
       <Col span="8" style="text-align:left;margin-left:10px">
         <!-- <Button type="primary" @click="updateIpsHandler" :loading="loading">更新Ip池</Button> &nbsp; -->
         <Button type="primary" @click="getIpsHandler" :disabled="!ipApiUrl">获取代理ip</Button>
-        <Tooltip max-width="200" content='从http://zhimahttp.com/getapi/（芝麻代理）获取IP链接，进行解析，注意需要json格式'>
+        <Tooltip max-width="200" content=''>
+          <div slot="content">从<a href='http://zhimahttp.com/getapi/' target="_blank">芝麻代理</a>获取IP生成链接，进行解析，注意需要json格式</div>
           <Icon type="ios-help-circle" style="font-size: 20px; color: #888; margin-left:5px"/>
         </Tooltip>
       </Col>
@@ -26,7 +27,10 @@
       </Col>
     </Row>
     <Row style='margin-top: 20px'>
-      <Col span="2"> 过滤：</Col>
+      <Col span="2"> 
+      <Tooltip max-width="200" content='搜索出来的结果，不能包含这些关键字'>
+        过滤：<Icon type="ios-help-circle" style="font-size: 10px; color: #888;"/>
+      </Tooltip></Col>
       <Col span="21" style="text-align:left">
         <Checkbox-group v-model="defaultWords" style="margin-bottom: 20px">
           <Checkbox :label="item" v-for="item in filterWordsArr" :key="item">
@@ -36,19 +40,30 @@
       </Col>
     </Row>
     <Row style='margin-top: 20px'>
-      <Col span="2"> 含有：</Col>
+      <Col span="2"> 
+      <Tooltip max-width="200" content='搜索出来的结果需要包含这些关键字'>
+        含有：<Icon type="ios-help-circle" style="font-size: 10px; color: #888;"/>
+      </Tooltip>
+      </Col>
       <Col span="6" style="text-align:left">
          <Input placeholder="输入包含的关键字" v-model="spiderWords"/>
       </Col>
-      <Col span="6">
+      <Col span="4">
         <Select v-model="ip" style="width:200px" placeholder="选择爬虫IP">
-            <Option v-for="item in ipList" :value="`http://${item.ip}:${item.port}`" :key="`${item.ip}:${item.port}`">http://{{item.ip}}:{{item.port}}</Option>
+            <Option v-for="item in ipList" :value="`http://${item.ip}:${item.port}`" :key="`${item.ip}:${item.port}`" :disabled='item.disabled'>http://{{item.ip}}:{{item.port}}</Option>
+        </Select>
+        <!-- <Select v-model="ip" style="width:100px" placeholder="选择爬取的页数">
+            <Option v-for="item in [1, 2, 3, 4, 5]" :value="item" :key="`${item}`">{{item}}</Option>
+        </Select> -->
+      </Col>
+      <Col span="6">
+        <Select v-model="spiderPageNum" style="width:200px" placeholder="选择爬取的页数">
+            <Option v-for="item in [1, 2, 3, 4, 5]" :value="item" :key="`${item}`">{{item}}</Option>
         </Select>
          &nbsp;
         <Tooltip max-width="200" content='IP爬取过一次可能会被封，需要重新获取IP'>
-          <Button type="primary" @click="spiderDataHandler" :loading="loading" :disabled='!this.ip'>开始爬取数据</Button>
+          <Button type="primary" @click="spiderDataHandler" :loading="loading" :disabled='!this.ip||!this.spiderPageNum'>开始爬取数据</Button>
         </Tooltip>
-        
       </Col>
     </Row>
     <Row style='margin-top: 20px; margin-bottom: 10px' type="flex" justify="center">
@@ -80,6 +95,7 @@ export default {
   created () {
     this.getList()
     this.ipApiUrl = sessionStorage.getItem('IPURL')
+    this.pageSize = +sessionStorage.getItem('pageSize')
     let ipList = sessionStorage.getItem('IPLIST')
     this.ipList = JSON.parse(ipList)
     let araGroup = sessionStorage.getItem('araGroup')
@@ -151,11 +167,12 @@ export default {
       ],
       houseData: [],
       urls: urls,
-      defaultWords: ["求组","合租", "求租", "主卧", "求整租","室友", "交友", "次卧", "跪求", "寻租", "组长", "房东群", "舍友", "教你", "招室友", "限女", "限男"],
+      defaultWords: ["求组","合租", "求租", "主卧", "求整租","室友", "交友", "次卧", "跪求", "寻租", "组长", "房东群", "舍友", "教你", "招室友", "限女", "限男", "求房"],
       filterWordsArr: [
         "求组","合租", "求租", "主卧", "求整租","室友", "交友", "次卧", "跪求", "寻租", "组长", "房东群", "舍友", "教你", "招室友", "限女", "限男"
-      ],
+      ,"求房"],
       spiderWords: '',
+      spiderPageNum: 1, //爬取页码
       selectItems: []
     };
   },
@@ -171,6 +188,7 @@ export default {
     },
     changePagesize (size) {
       this.pageSize = size
+      sessionStorage.setItem('pageSize', this.pageSize)
       this.getList()
     },
     selectChange (arg) {
@@ -181,19 +199,26 @@ export default {
       this.total = total || 0
       this.houseData = list;
     },
-
-    ratioChange(val) {
-      // getHousData({area: val})
-    },
     async spiderDataHandler() {
+      if (!this.araGroup.length) {
+        this.$Message.warning('请选择豆瓣小组')
+        return
+      }
       this.loading = true;
-      let data = await spiderData({ip: this.ip, keys: this.araGroup, filterWords: this.filterWords, spiderWords: this.spiderWords});
-      console.log('data', data)
+      let data = await spiderData({ip: this.ip, keys: this.araGroup, filterWords: this.defaultWords, spiderWords: this.spiderWords, spiderPageNum: this.spiderPageNum});
       this.loading = false;
       if (data.code === -1) {
+        this.ipList.forEach(ob => {
+          if (this.ip.includes(ob.ip)) {
+            ob.disabled = true
+            return
+          }
+        });
+        sessionStorage.setItem('IPLIST', JSON.stringify(this.ipList))
         this.$Message.error(data.msg)
         return
       }
+      this.$Message.success(data.msg)
       this.getList()
     },
     updateIpsHandler () {
@@ -208,7 +233,6 @@ export default {
       let {list} = await getIps({url: this.ipApiUrl})
       this.ipList = []
       list.map((ls) => {
-        // if (!ls.ip) ls.ip = ls.ip
         if (!this.ipList.some((o) => o.ip === ls.ip && o.port === ls.port)) this.ipList.push(ls)
       })
       sessionStorage.setItem('IPLIST', JSON.stringify(this.ipList))
@@ -218,9 +242,6 @@ export default {
       let { list, total} = await getHousData({ label: this.araGroup, page: this.page, pageSize: this.pageSize});
       this.total = total || 0
       this.houseData = list;
-      // list.map(item => {
-      //   this.houseData.push(...item.list);
-      // });
     },
     pageChage (val) {
       this.page = val

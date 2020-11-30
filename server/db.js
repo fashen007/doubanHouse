@@ -50,12 +50,10 @@ function __insertMany(collectionName, Datajson, callback) {
   __connectDB(function (err, db, client) {
     var collection = db.collection(collectionName);
     collection.insertMany(Datajson, {ordered: false}, function (err, result) {
-      console.log('入库完成', Datajson)
       callback(err, result); // 通过回调函数上传数据
       client.close();
     })
     // update_many
-    // console.log('Datajson', Datajson)
     // collection.updateMany(Datajson, {$set: Datajson}, true, function (err, result) {
     //   callback(err, result);
     //   client.close();
@@ -104,7 +102,6 @@ function __DeleteMany(collectionName, json, callback) {
   __connectDB(function (err, db, client) {
     assert.equal(err, null)
     //删除
-    // console.log('json', json)
     db.collection(collectionName).deleteMany(
       json,
       function (err, results) {

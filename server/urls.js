@@ -51,7 +51,7 @@ module.exports = urls = [
     key: "gzzswl"
   },
   {
-    url: "https://www.douban.com/group/366393/",
+    url: "https://www.douban.com/group/558241/",
     label: "广州公寓租房信息",
     key: "gzgy"
   },

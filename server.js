@@ -19,34 +19,20 @@ app.use(multer());
 const superagent = require('superagent');
 const eventproxy = require('eventproxy');
 var request = require('request');
-// const ipProxy = require('ip-proxy-pool');
 const cheerio = require('cheerio');
 const async = require('async');
 require('superagent-proxy')(superagent);
 var ObjectId = require('mongodb').ObjectID
-
+global.db = require('./server/db')
 // 爬虫基本配置，后续可以从界面端传进来
 const groups = require('./server/urls') // 租房小组的url,
-let page = 1 // 抓取页面数量
-let start = 24  // 页面参数拼凑
-
 // 构造爬虫ulr
 let ep = new eventproxy()  //  实例化eventproxy
-global.db = require('./server/db')
-let allLength = groups.length
-groups.map((gp) => {
-  gp.pageUrls = [] // 要抓取的页面数组
-  // allLength = allLength + 1
-  for (let i = 0; i < page; i++) {
-    // allLength = allLength + i
-    gp.pageUrls.push({
-      url: gp.url + i * start // 构造成类似 https://www.douban.com/group/liwanzufang/discussion?start=0
-    });
-  }
-})
-const iprequstFuc = url => new Promise((resolve, reject) => request.get(url, (err, response, body) => {
+
+// 爬取内容
+const requrestContentBody = url => new Promise((resolve, reject) => request.get(url, (err, response, body) => {
   if (err) {
-  reject(err);
+    reject(err);
   } else {
     resolve(JSON.parse(body));
   }
@@ -58,7 +44,8 @@ const getPageInfo = (ip, pageItem, callback) => {
   let delay = parseInt((Math.random() * 30000000) % 1000, 10)
   let resultBack = {label: pageItem.key, list: []}
   console.log('pageItem.pageUrls', pageItem.pageUrls)
-  pageItem.pageUrls.forEach(pageUrl => {
+  pageItem.pageUrls.forEach((pageUrl, index, arr) => {
+    console.log('ip', ip)
     superagent.get(pageUrl.url).proxy(ip)
       // 模拟浏览器
       .set('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36')
@@ -66,12 +53,12 @@ const getPageInfo = (ip, pageItem, callback) => {
       .set('Cookie', '')
       .end((err, pres) => {
         // console.log('能进来吗？', pres)
-        console.log('爬取进行中')
         if (err || !pres) {
           console.log('爬取失败了')
-          ep.emit('spiderFailure', {})
+          ep.emit('spiderEnd', null)
           return
         }
+        console.log('爬取进行中')
         let $ = cheerio.load(pres.text) // 将页面数据用cheerio处理，生成一个类jQuery对象
         let itemList = $('.olt tbody').children().slice(1, 26) // 取出table中的每行数据，并过滤掉表格标题
         // 遍历页面中的每条数据
@@ -95,41 +82,50 @@ const getPageInfo = (ip, pageItem, callback) => {
           }
           resultBack.list.push(data)
         }
-        // ep.emit('事件名称', 数据内容)
-        console.log('触发preparePage')
+        console.log('准备回调', pageItem.url)
         ep.emit('preparePage', resultBack) // 每处理完一条数据，便把这条数据通过preparePage事件发送出去，这里主要是起计数的作用
-        setTimeout(() => {
+        if (index == arr.length - 1) {
           callback(null, pageItem.url);
-        }, delay);
+        }
       })
   })
 }
 
 function getData(query, res) {
-  let {ip, keys, filterWords, spiderWords} = query
+  let {ip, keys, filterWords = [], spiderWords, spiderPageNum = 1} = query
   //  遍历爬取页面
   let tempGroup = groups.filter((item) =>  keys.includes(item.key))
-  ep.after('preparePage', tempGroup.length * page, function (data, res) {
+  let uniqueTitle = []
+  let uniqueList = []
+  let inserTodbList = []
+  let start = 25  // 页面参数拼凑
+  tempGroup.map((gp) => {
+    gp.pageUrls = [] // 要抓取的页面数组
+    for (let i = 0; i < spiderPageNum; i++) {
+      gp.pageUrls.push({
+        url: gp.url +'discussion/?start=' + i * start // 构造成类似 https://www.douban.com/group/liwanzufang/discussion?start=0
+      });
+    }
+  })
+  ep.after('preparePage', tempGroup.length * spiderPageNum, function (data, res) {
     // 这里我们传入不想要出现的关键词，用'|'隔开 。比如排除一些位置，排除中介常用短语
     let filterWordsExp = new RegExp(filterWords.join("|"))
-    let spiderWordsExp = new RegExp(fspiderWords)
+    let spiderWordsExp = new RegExp(spiderWords)
     // 再次遍历抓取到的数据
-    let inserTodbList = []
     data.forEach(item => {
       //  这里if的顺序可是有讲究的，合理的排序可以提升程序的效率
-      console.log('便利村粗', item.list)
       if (!item.list) return false
       item.list = item.list.filter((ops) => {
         if (ops.markSum > 100) {
           console.log('评论过多，丢弃')
           return false
         }
-        console.log('ops.title', ops.title)
         if (filterWords.length && filterWordsExp.test(ops.title)) {
           // 含有排除的文案需要要排除
+          console.log('包含排除关键字，被排除', ops.title)
           return false
         }
-        if (fspiderWords &&!spiderWordsExp.test(ops.title)) {
+        if (spiderWordsExp &&!spiderWordsExp.test(ops.title)) {
           // 不含有指定的文案的也要排除
           return false
         }
@@ -137,20 +133,20 @@ function getData(query, res) {
       })
       inserTodbList.push(...item.list)
     })
-    let uniqueTitle = []
-    let uniqueList = []
-    inserTodbList.map((item) => {
-      console.log('item', item)
+    // console.log('inserTodbList', inserTodbList)
+    inserTodbList = inserTodbList.filter((item) => {
       if (!uniqueTitle.includes(item.title)) {
         uniqueList.push(item)
         uniqueTitle.push(item.title)
+        return true
       }
+      return false
     })
     global.db.__insertMany('douban', inserTodbList, function () {
-      ep.emit('spiderEnd', {})
+      ep.emit('spiderEnd', inserTodbList)
     })
   });
-  async.mapLimit(tempGroup, 1, function (item, callback) {
+  async.mapLimit(tempGroup, _page, function (item, callback) {
     getPageInfo(ip, item, callback);
   }, function (err) {
     if (err) {
@@ -165,34 +161,21 @@ function getData(query, res) {
 
 // 获取ip
 app.post('/api/getIps/', async (req, res) => {
-  // async function getIps(callback) {
-  //   // let ips = ipProxy.ips
-  //   callback(ips)
-  //   // ips((err,response) => {
-  //   //   callback(response)
-  //   // })
-  // }
-  // getIps(function (ipList) {
-  //   console.log('ipList', ipList)
-  //   res.send({
-  //     msg: '获取成功',
-  //     list: ipList
-  //   })
-  // })
   let {url} = req.body.params
+  let resData = {}
   if (!url) {
-    res.send({
+    resData = {
       msg: '获取ip失败，未有输入API',
       list: []
-    })
-    return
+    }
+  } else {
+    let ipdata = await requrestContentBody(url)
+    resData = {
+      msg: '获取成功', 
+      list: ipdata.data
+    }
   }
-  console.log('到这一步了', url)
-  let ipdata = await iprequstFuc(url)
-  res.send({
-    msg: '获取成功',
-    list: ipdata.data
-  })
+  res.send(resData)
 })
 
 // 更新ip池
@@ -203,18 +186,21 @@ app.get('/api/updateIps', (req, res) => {
 })
 // 向豆瓣爬取
 app.get('/api/getDataFromDouBan', (req, res) => {
-  // let {ip, keys, filterWords, spiderWords} = req.query
-  getData(req.query,res)
-  ep.after('spiderEnd', 1, function() {
-    res.send({
-      data: '爬取结束'
-    })
-  })
-  ep.after('spiderFailure', 1, function() {
-    res.send({
-      msg: '爬取失败，请更新IP',
-      code: -1
-    })
+  getData(req.query, res)
+  let resData = {}
+  ep.after('spiderEnd', 1, function(o) {
+    if (!o[0]) {
+      resData = {
+        msg: '爬取失败，请更新IP',
+        code: -1
+      }
+    } else {
+      resData = {
+        msg: `爬取结束, 增加了${o[0].length}条数据`,
+        data: []
+      }
+    }
+    res.send(resData)
   })
 })
 // 向数据库中查询数据
@@ -224,10 +210,7 @@ app.get('/api/doubanList', (req, res) => {
   label && label.map((item) => {
     param.push({label: item})
   })
-  let queryJson = {
-    // $where: "label"
-  }
-  // queryJson['$sort'] = [{ KEY: 1 }]
+  let queryJson = {}
   if (param.length) queryJson['$or'] = param
   global.db.__find('douban', {queryJson, page, pageSize, sort: {'_id': -1}}, function (data) {
     res.send({
