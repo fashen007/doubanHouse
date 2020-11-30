@@ -146,7 +146,7 @@ function getData(query, res) {
       ep.emit('spiderEnd', inserTodbList)
     })
   });
-  async.mapLimit(tempGroup, _page, function (item, callback) {
+  async.mapLimit(tempGroup, spiderPageNum, function (item, callback) {
     getPageInfo(ip, item, callback);
   }, function (err) {
     if (err) {
