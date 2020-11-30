@@ -96,6 +96,7 @@ export default {
     this.getList()
     this.ipApiUrl = sessionStorage.getItem('IPURL')
     this.pageSize = +sessionStorage.getItem('pageSize')
+    this.spiderPageNum = +sessionStorage.getItem('spiderPageNum')
     let ipList = sessionStorage.getItem('IPLIST')
     this.ipList = JSON.parse(ipList)
     let araGroup = sessionStorage.getItem('araGroup')
@@ -178,12 +179,12 @@ export default {
   },
   methods: {
     async remove(index, row) {
-      let data = await deleteRecord({ids: [row._id]})
+      await deleteRecord({ids: [row._id]})
       this.houseData = this.houseData.filter((item) => item._id !== row._id)
     },
-    async removeAll(index, row) {
+    async removeAll() {
       let ids = this.selectItems.map((row) => row._id)
-      let data = await deleteRecord({ids})
+      await deleteRecord({ids})
       this.houseData = this.houseData.filter((item) => !ids.includes(item._id))
     },
     changePagesize (size) {
@@ -257,6 +258,10 @@ export default {
     ipApiUrl(val, old) {
       if (val === old) return
       sessionStorage.setItem('IPURL', val)
+    },
+    spiderPageNum (val, old) {
+      if (val === old) return
+      sessionStorage.setItem('spiderPageNum', val)
     }
   }
 };
