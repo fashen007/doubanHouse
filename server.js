@@ -85,7 +85,9 @@ const getPageInfo = (ip, pageItem, callback) => {
         console.log('准备回调', pageItem.url)
         ep.emit('preparePage', resultBack) // 每处理完一条数据，便把这条数据通过preparePage事件发送出去，这里主要是起计数的作用
         if (index == arr.length - 1) {
-          callback(null, pageItem.url);
+          setTimeout(() => {
+            callback(null, pageItem.url);
+          }, delay)
         }
       })
   })
